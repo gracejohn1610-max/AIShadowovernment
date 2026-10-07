@@ -1,0 +1,7 @@
+.venv/
+.venv311/
+__pycache__/
+*.pyc
+.env
+shadow_government.db
+uploads/*
