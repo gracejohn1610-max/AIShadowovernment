@@ -1,2 +1,4 @@
-Flask>=3.0,<4.0
-Werkzeug>=3.0,<4.0
+Flask
+Werkzeug
+google-genai
+gunicorn
