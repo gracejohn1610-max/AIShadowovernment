@@ -207,89 +207,100 @@ def conn():
 # DATABASE
 # ============================================================
 
+
 def init():
     c = conn()
-    print("DATABASE INIT: running", flush=True)
-    print("DATABASE TABLES:", c.execute(
-    "SELECT name FROM sqlite_master WHERE type='table'"
-).fetchall(), flush=True)
-    c.executescript('''
-    CREATE TABLE IF NOT EXISTS users(
-        id INTEGER PRIMARY KEY,
-        name TEXT NOT NULL,
-        email TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
-        role TEXT NOT NULL,
-        department TEXT,
-        employee_id TEXT,
-        created_at TEXT NOT NULL
-    );
 
-    CREATE TABLE IF NOT EXISTS complaints(
-        id INTEGER PRIMARY KEY,
-        citizen_id INTEGER NOT NULL,
-        title TEXT NOT NULL,
-        description TEXT NOT NULL,
-        category TEXT NOT NULL,
-        location TEXT NOT NULL,
-        image_filename TEXT,
-        ai_category TEXT,
-        ai_priority TEXT,
-        ai_summary TEXT,
-        ai_department TEXT,
-        status TEXT NOT NULL DEFAULT 'Submitted',
-        assigned_official_id INTEGER,
-        official_response TEXT,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        FOREIGN KEY(citizen_id) REFERENCES users(id)
-    );
+    try:
+        c.executescript('''
+        CREATE TABLE IF NOT EXISTS users(
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            role TEXT NOT NULL,
+            department TEXT,
+            employee_id TEXT,
+            created_at TEXT NOT NULL
+        );
 
-    CREATE TABLE IF NOT EXISTS policies(
-        id INTEGER PRIMARY KEY,
-        official_id INTEGER NOT NULL,
-        title TEXT NOT NULL,
-        description TEXT NOT NULL,
-        analysis TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        FOREIGN KEY(official_id) REFERENCES users(id)
-    );
+        CREATE TABLE IF NOT EXISTS complaints(
+            id INTEGER PRIMARY KEY,
+            citizen_id INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            description TEXT NOT NULL,
+            category TEXT NOT NULL,
+            location TEXT NOT NULL,
+            image_filename TEXT,
+            ai_category TEXT,
+            ai_priority TEXT,
+            ai_summary TEXT,
+            ai_department TEXT,
+            status TEXT NOT NULL DEFAULT 'Submitted',
+            assigned_official_id INTEGER,
+            official_response TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY(citizen_id) REFERENCES users(id)
+        );
 
-    CREATE INDEX IF NOT EXISTS ix_c
-    ON complaints(status, ai_category, location);
-    ''')
+        CREATE TABLE IF NOT EXISTS policies(
+            id INTEGER PRIMARY KEY,
+            official_id INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            description TEXT NOT NULL,
+            analysis TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY(official_id) REFERENCES users(id)
+        );
 
-    if not c.execute(
-        'SELECT 1 FROM users WHERE email=?',
-        ('official@shadow.gov',)
-    ).fetchone():
+        CREATE INDEX IF NOT EXISTS ix_c
+        ON complaints(status, ai_category, location);
+        ''')
 
-        c.execute(
-            '''
-            INSERT INTO users(
-                name,
-                email,
-                password_hash,
-                role,
-                department,
-                employee_id,
-                created_at
+        existing = c.execute(
+            'SELECT 1 FROM users WHERE email = ?',
+            ('official@shadow.gov',)
+        ).fetchone()
+
+        if not existing:
+            c.execute(
+                '''INSERT INTO users
+                (name, email, password_hash, role, department,
+                 employee_id, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)''',
+                (
+                    'Demo Official',
+                    'official@shadow.gov',
+                    generate_password_hash('Official@123'),
+                    'official',
+                    'Administration',
+                    'OFF001',
+                    datetime.now().isoformat()
+                )
             )
-            VALUES(?,?,?,?,?,?,?)
-            ''',
-            (
-                'Demo Government Official',
-                'official@shadow.gov',
-                generate_password_hash('Official@123'),
-                'official',
-                'Municipal Administration',
-                'DEMO001',
-                now()
-            )
-        )
 
-    c.commit()
-    c.close()
+        c.commit()
+
+        tables = {
+            row['name']
+            for row in c.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            ).fetchall()
+        }
+
+        print("DATABASE PATH:", os.path.abspath(DB), flush=True)
+        print("DATABASE TABLES AFTER INIT:", sorted(tables), flush=True)
+
+        required_tables = {'users', 'complaints', 'policies'}
+
+        if not required_tables.issubset(tables):
+            raise RuntimeError(
+                f"Database initialization failed. Found tables: {tables}"
+            )
+
+    finally:
+        c.close()
 
 init()
 # ============================================================
@@ -2369,6 +2380,7 @@ def big(e):
 # ============================================================
 
 if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
 
     init()
 
