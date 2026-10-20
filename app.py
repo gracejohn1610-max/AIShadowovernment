@@ -21,6 +21,7 @@ from google.genai import types
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 DB = os.path.join(BASE, 'shadow_government.db')
+print("DATABASE PATH:", os.path.abspath(DB), flush=True)
 UP = os.path.join(BASE, 'uploads')
 
 os.makedirs(UP, exist_ok=True)
@@ -208,7 +209,10 @@ def conn():
 
 def init():
     c = conn()
-
+    print("DATABASE INIT: running", flush=True)
+    print("DATABASE TABLES:", c.execute(
+    "SELECT name FROM sqlite_master WHERE type='table'"
+).fetchall(), flush=True)
     c.executescript('''
     CREATE TABLE IF NOT EXISTS users(
         id INTEGER PRIMARY KEY,
