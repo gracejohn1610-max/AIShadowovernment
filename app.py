@@ -8,7 +8,7 @@ import secrets
 import json
 import time
 
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import wraps
 
 from google import genai
@@ -165,16 +165,13 @@ GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 
 # Primary model that already worked in your testing.
 PRIMARY_GEMINI_MODEL = 'gemini-3.8-flash'
-
-# Fallback model.
-# If the primary model is overloaded, this one is attempted.
-FALLBACK_GEMINI_MODEL = 'gemini-3.8-flash-lite'
+FALLBACK_GEMINI_MODEL = 'gemini-3.5-flash-lite'
 
 # Number of attempts for each model.
-MAX_RETRIES = 3
+MAX_RETRIES = 1
 
 # Timeout in milliseconds.
-GEMINI_TIMEOUT = 30000
+GEMINI_TIMEOUT = 90000
 
 gemini_client = None
 
@@ -195,7 +192,7 @@ if GEMINI_API_KEY:
 # ============================================================
 
 def now():
-    return datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
+    return datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
 
 
 def conn():
